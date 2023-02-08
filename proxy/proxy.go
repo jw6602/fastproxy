@@ -256,11 +256,13 @@ func (p *Proxy) serveConn(c net.Conn) error {
 		}
 
 		// do a manual DNS look up
-		domain := req.reqLine.HostInfo().Domain()
-		if len(domain) > 0 {
-			ip := p.Handler.LookupIP(req.userdata, domain)
-			req.reqLine.HostInfo().SetIP(ip)
-		}
+		/*
+			domain := req.reqLine.HostInfo().Domain()
+			if len(domain) > 0 {
+				ip := p.Handler.LookupIP(req.userdata, domain)
+				req.reqLine.HostInfo().SetIP(ip)
+			}
+		*/
 
 		// set requests proxy
 		superProxy := p.Handler.URLProxy(req.userdata, req.reqLine.HostInfo().HostWithPort(), req.PathWithQueryFragment())
