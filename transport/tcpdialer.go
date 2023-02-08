@@ -122,6 +122,7 @@ func (d *tcpDialer) newDial(timeout time.Duration) DialFunc {
 	})
 
 	return func(addr string) (net.Conn, error) {
+		
 		addrs, idx, err := d.getTCPAddrs(addr)
 		if err != nil {
 			return nil, err

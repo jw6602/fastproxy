@@ -28,7 +28,7 @@ const (
 	DefaultMaxConcurrency = 2
 )
 
-//SuperProxy chaining proxy
+// SuperProxy chaining proxy
 type SuperProxy struct {
 	hostWithPort      string
 	hostWithPortBytes []byte
@@ -95,17 +95,17 @@ func NewSuperProxy(proxyHost string, proxyPort uint16, proxyType ProxyType,
 	return s, nil
 }
 
-//Username returns username
+// Username returns username
 func (p *SuperProxy) Username() string {
 	return p.username
 }
 
-//Password returns password
+// Password returns password
 func (p *SuperProxy) Password() string {
 	return p.password
 }
 
-//GetProxyType returns super proxy type
+// GetProxyType returns super proxy type
 func (p *SuperProxy) GetProxyType() ProxyType {
 	return p.proxyType
 }

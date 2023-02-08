@@ -244,6 +244,7 @@ func (p *Proxy) serveConn(c net.Conn) error {
 		}
 
 		newHostWithPort := p.Handler.RewriteURL(req.userdata, req.reqLine.HostInfo().HostWithPort())
+		fmt.Println(newHostWithPort, req.reqLine.HostInfo().HostWithPort())
 		if len(newHostWithPort) == 0 {
 			if e := writeFastError(c, http.StatusSessionUnavailable,
 				"Sorry, server can't keep this session.\n"); e != nil {
@@ -263,8 +264,6 @@ func (p *Proxy) serveConn(c net.Conn) error {
 				req.reqLine.HostInfo().SetIP(ip)
 			}
 		*/
-		fmt.Println(req.reqLine.HostInfo())
-		fmt.Println(req.reqLine.HostInfo().Domain())
 
 		// set requests proxy
 		superProxy := p.Handler.URLProxy(req.userdata, req.reqLine.HostInfo().HostWithPort(), req.PathWithQueryFragment())
