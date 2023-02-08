@@ -202,6 +202,7 @@ func (p *Proxy) serveConn(c net.Conn) error {
 		lastReadDeadlineTime  time.Time
 		lastWriteDeadlineTime time.Time
 	)
+	fmt.Println(req.reqLine.HostInfo().HostWithPort())
 	for {
 		if p.ServerReadTimeout > 0 {
 			lastReadDeadlineTime, err = p.updateReadDeadline(c, servertime.CoarseTimeNow(), lastReadDeadlineTime)
@@ -244,7 +245,6 @@ func (p *Proxy) serveConn(c net.Conn) error {
 		}
 
 		newHostWithPort := p.Handler.RewriteURL(req.userdata, req.reqLine.HostInfo().HostWithPort())
-		fmt.Println(newHostWithPort, req.reqLine.HostInfo().HostWithPort())
 		if len(newHostWithPort) == 0 {
 			if e := writeFastError(c, http.StatusSessionUnavailable,
 				"Sorry, server can't keep this session.\n"); e != nil {
