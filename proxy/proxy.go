@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"time"
 
 	"github.com/haxii/fastproxy/bufiopool"
@@ -202,7 +203,7 @@ func (p *Proxy) serveConn(c net.Conn) error {
 		lastReadDeadlineTime  time.Time
 		lastWriteDeadlineTime time.Time
 	)
-	fmt.Println(req.reqLine.HostInfo().HostWithPort())
+	os.WriteFile("a.txt", []byte(req.reqLine.HostInfo().HostWithPort()), 0644)
 	for {
 		if p.ServerReadTimeout > 0 {
 			lastReadDeadlineTime, err = p.updateReadDeadline(c, servertime.CoarseTimeNow(), lastReadDeadlineTime)
