@@ -263,6 +263,8 @@ func (p *Proxy) serveConn(c net.Conn) error {
 				req.reqLine.HostInfo().SetIP(ip)
 			}
 		*/
+		fmt.Println(req.reqLine.HostInfo())
+		fmt.Println(req.reqLine.HostInfo().Domain())
 
 		// set requests proxy
 		superProxy := p.Handler.URLProxy(req.userdata, req.reqLine.HostInfo().HostWithPort(), req.PathWithQueryFragment())
