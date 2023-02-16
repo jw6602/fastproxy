@@ -22,7 +22,7 @@ var (
 )
 
 func (p *SuperProxy) initHTTPCertAndAuth(isSSL bool, host string,
-	user string, pass string, selfSignedCACertificate string) {
+	user string, pass string, selfSignedCACertificate string, blacklistUsername string, blacklistPassword string) {
 	// make HTTP/HTTPS proxy auth header
 	basicAuth := func(username, password string) string {
 		auth := username + ":" + password
@@ -39,6 +39,9 @@ func (p *SuperProxy) initHTTPCertAndAuth(isSSL bool, host string,
 		authHeaderWithCRLFStr := "Proxy-Authorization: Basic " + basicAuth(user, pass) + "\r\n"
 		p.authHeaderWithCRLF = make([]byte, len(authHeaderWithCRLFStr))
 		copy(p.authHeaderWithCRLF, []byte(authHeaderWithCRLFStr))
+		blacklistAuthHeaderWithCRLFStr := "Proxy-Authorization: Basic " + basicAuth(blacklistUsername, blacklistPassword) + "\r\n"
+		p.blacklistAuthHeaderWithCRLF = make([]byte, len(blacklistAuthHeaderWithCRLFStr))
+		copy(p.blacklistAuthHeaderWithCRLF, []byte(blacklistAuthHeaderWithCRLFStr))
 	} else {
 		p.authHeaderWithCRLF = nil
 	}
@@ -50,15 +53,24 @@ func (p *SuperProxy) initHTTPCertAndAuth(isSSL bool, host string,
 // Host: targetHost:Port\r\n
 // * proxy auth if needed *
 // \r\n
-func (p *SuperProxy) writeHTTPProxyReq(c net.Conn, targetHostWithPort []byte) (int, error) {
+func (p *SuperProxy) writeHTTPProxyReq(c net.Conn, targetHostWithPort []byte, isBlacklisted bool) (int, error) {
 	buf := bytebufferpool.Get()
 	defer bytebufferpool.Put(buf)
-	buf.B = make([]byte, len(superProxyReqMethod)+len(superProxyReqSP)+
+	if isBlacklisted {
+		buf.B = make([]byte, len(superProxyReqMethod)+len(superProxyReqSP)+
+		len(targetHostWithPort)+len(superProxyReqSP)+
+		len(superProxyReqProtocol)+len(superProxyReqCRLF)+
+		len(superProxyReqHostHeader)+len(superProxyReqSP)+
+		len(targetHostWithPort)+len(superProxyReqCRLF)+
+		len(p.blacklistAuthHeaderWithCRLF)+len(superProxyReqCRLF))
+	} else {
+		buf.B = make([]byte, len(superProxyReqMethod)+len(superProxyReqSP)+
 		len(targetHostWithPort)+len(superProxyReqSP)+
 		len(superProxyReqProtocol)+len(superProxyReqCRLF)+
 		len(superProxyReqHostHeader)+len(superProxyReqSP)+
 		len(targetHostWithPort)+len(superProxyReqCRLF)+
 		len(p.authHeaderWithCRLF)+len(superProxyReqCRLF))
+	}
 	copyIndex := 0
 	copyBytes := func(b []byte) {
 		copy(buf.B[copyIndex:], b)
@@ -74,7 +86,11 @@ func (p *SuperProxy) writeHTTPProxyReq(c net.Conn, targetHostWithPort []byte) (i
 	copyBytes(superProxyReqSP)
 	copyBytes(targetHostWithPort)
 	copyBytes(superProxyReqCRLF)
-	copyBytes(p.authHeaderWithCRLF)
+	if isBlacklisted {
+		copyBytes(p.blacklistAuthHeaderWithCRLF)
+	} else {
+		copyBytes(p.authHeaderWithCRLF)
+	}
 	copyBytes(superProxyReqCRLF)
 	return util.WriteWithValidation(c, buf.B)
 }

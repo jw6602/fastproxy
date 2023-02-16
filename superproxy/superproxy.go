@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/haxii/fastproxy/bufiopool"
@@ -36,6 +37,12 @@ type SuperProxy struct {
 	username string
 	password string
 
+	blacklist                  []string
+	blacklistHostWithPort      string
+	blacklistHostWithPortBytes []byte
+	blacklistUsername          string
+	blacklistPassword          string
+
 	// proxyType, HTTP/HTTPS/SOCKS5
 	proxyType ProxyType
 	// proxy net connections pool/manager
@@ -46,7 +53,8 @@ type SuperProxy struct {
 	tlsConfig *tls.Config
 
 	// HTTP proxy auth header
-	authHeaderWithCRLF []byte
+	authHeaderWithCRLF          []byte
+	blacklistAuthHeaderWithCRLF []byte
 
 	// SOCKS5 greetings & auth header
 	socks5Greetings []byte
@@ -61,7 +69,7 @@ type SuperProxy struct {
 
 // NewSuperProxy new a super proxy
 func NewSuperProxy(proxyHost string, proxyPort uint16, proxyType ProxyType,
-	user string, pass string, selfSignedCACertificate string) (*SuperProxy, error) {
+	user string, pass string, selfSignedCACertificate string, blacklist []string, blacklistHostWithPort string, blacklistUsername string, blacklistPassword string) (*SuperProxy, error) {
 	// check input vars
 	if len(proxyHost) == 0 {
 		return nil, errors.New("nil host provided")
@@ -82,8 +90,16 @@ func NewSuperProxy(proxyHost string, proxyPort uint16, proxyType ProxyType,
 	s.hostWithPortBytes = make([]byte, len(s.hostWithPort))
 	copy(s.hostWithPortBytes, []byte(s.hostWithPort))
 
+	s.blacklist = blacklist
+
+	s.blacklistHostWithPort = blacklistHostWithPort
+	copy(s.blacklistHostWithPortBytes, []byte(s.blacklistHostWithPort))
+
+	s.blacklistUsername = blacklistUsername
+	s.blacklistPassword = blacklistPassword
+
 	if proxyType != ProxyTypeSOCKS5 {
-		s.initHTTPCertAndAuth(proxyType == ProxyTypeHTTPS, proxyHost, user, pass, selfSignedCACertificate)
+		s.initHTTPCertAndAuth(proxyType == ProxyTypeHTTPS, proxyHost, user, pass, selfSignedCACertificate, blacklistUsername, blacklistPassword)
 	} else {
 		s.initSOCKS5GreetingsAndAuth(user, pass)
 	}
@@ -133,14 +149,23 @@ func (p *SuperProxy) MakeTunnel(pool *bufiopool.Pool,
 	var (
 		c   net.Conn
 		err error
+		isBlacklisted = false
 	)
+	hostWithPort := p.hostWithPort
+	for _, host := range p.blacklist {
+		if strings.Contains(targetHostWithPort, host) {
+			hostWithPort = p.blacklistHostWithPort
+			isBlacklisted = true
+			break
+		}
+	}
 	switch p.proxyType {
 	case ProxyTypeHTTP:
 		fallthrough
 	case ProxyTypeSOCKS5:
-		c, err = transport.Dial(p.hostWithPort)
+		c, err = transport.Dial(hostWithPort)
 	case ProxyTypeHTTPS:
-		c, err = transport.DialTLS(p.hostWithPort, p.tlsConfig)
+		c, err = transport.DialTLS(hostWithPort, p.tlsConfig)
 	}
 
 	if err != nil {
@@ -149,7 +174,7 @@ func (p *SuperProxy) MakeTunnel(pool *bufiopool.Pool,
 
 	if p.proxyType != ProxyTypeSOCKS5 {
 		// HTTP/HTTPS tunnel establishing
-		_, err := p.writeHTTPProxyReq(c, []byte(targetHostWithPort))
+		_, err := p.writeHTTPProxyReq(c, []byte(targetHostWithPort), isBlacklisted)
 		if err != nil {
 			c.Close()
 			return nil, err
