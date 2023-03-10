@@ -37,7 +37,7 @@ type SuperProxy struct {
 	username string
 	password string
 
-	blacklist                  []string
+	Blacklist                  []string
 	blacklistHostWithPort      string
 	blacklistHostWithPortBytes []byte
 	blacklistUsername          string
@@ -90,7 +90,7 @@ func NewSuperProxy(proxyHost string, proxyPort uint16, proxyType ProxyType,
 	s.hostWithPortBytes = make([]byte, len(s.hostWithPort))
 	copy(s.hostWithPortBytes, []byte(s.hostWithPort))
 
-	s.blacklist = blacklist
+	s.Blacklist = blacklist
 
 	s.blacklistHostWithPort = blacklistHostWithPort
 	copy(s.blacklistHostWithPortBytes, []byte(s.blacklistHostWithPort))
@@ -147,12 +147,12 @@ func (p *SuperProxy) HTTPProxyAuthHeaderWithCRLF() []byte {
 func (p *SuperProxy) MakeTunnel(pool *bufiopool.Pool,
 	targetHostWithPort string) (net.Conn, error) {
 	var (
-		c   net.Conn
-		err error
+		c             net.Conn
+		err           error
 		isBlacklisted = false
 	)
 	hostWithPort := p.hostWithPort
-	for _, host := range p.blacklist {
+	for _, host := range p.Blacklist {
 		if strings.Contains(targetHostWithPort, host) {
 			hostWithPort = p.blacklistHostWithPort
 			isBlacklisted = true
